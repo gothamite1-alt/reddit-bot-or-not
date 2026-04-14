@@ -1,5 +1,3 @@
-Content is user-generated and unverified.
-1
 const { getStore } = require('@netlify/blobs');
 
 const DAILY_FREE_LIMIT = 3;
