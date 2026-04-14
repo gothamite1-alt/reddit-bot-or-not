@@ -967,8 +967,10 @@ Analyze: hedging language, generic transitions, over-structured prose, lack of t
     const res = await fetch('/.netlify/functions/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text })
+      body: JSON.stringify({ text }),
+      credentials: 'same-origin'
     });
+
 
     if (res.status === 429) { showPaywall(); setLoading(false); return; }
     if (!res.ok) throw new Error('API error ' + res.status);
