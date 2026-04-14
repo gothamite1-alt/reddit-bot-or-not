@@ -877,7 +877,7 @@ const STRIPE_ANNUAL_URL  = 'https://buy.stripe.com/5kQcMYeew4oNbkX2jg5Vu02';
 // API key is now handled server-side via Netlify function
 
 // ── USAGE TRACKING (server-side IP based) ──
-let currentRemaining = DAILY_FREE_LIMIT;
+let currentRemaining = 0; // default to 0 until server confirms
 let isPro = false;
 
 function updateUsagePill(remaining) {
@@ -924,30 +924,17 @@ function updateCount() {
 }
 
 // ── ANALYZE ──
-const CACHE = new Map();
-
-function hashText(s) {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
-  return String(h);
-}
 
 async function analyze() {
   const text = document.getElementById('postInput').value.trim();
   if (text.length < 30) { showError('Please paste a longer post (at least 30 characters).'); return; }
 
+  if (!isPro && !usageLoaded) { showError('Loading usage data, please try again in a moment.'); return; }
   if (!isPro && currentRemaining <= 0) { showPaywall(); return; }
 
   setLoading(true);
   hideError();
   hideResult();
-
-  const key = hashText(text);
-  if (CACHE.has(key)) {
-    renderResult(CACHE.get(key));
-    setLoading(false);
-    return;
-  }
 
   try {
     const res = await fetch('/.netlify/functions/analyze', {
@@ -963,7 +950,6 @@ async function analyze() {
 
     const parsed = await res.json();
 
-    CACHE.set(key, parsed);
     if (parsed.remaining !== undefined) updateUsagePill(parsed.remaining);
     renderResult(parsed);
 
@@ -1040,7 +1026,8 @@ function goToStripe() {
 }
 
 // ── INIT ──
-updateUsagePill(DAILY_FREE_LIMIT);
+updateUsagePill(0);
+let usageLoaded = false;
 fetch('/.netlify/functions/usage')
   .then(r => r.json())
   .then(d => {
@@ -1048,8 +1035,9 @@ fetch('/.netlify/functions/usage')
       updateUsagePill(d.remaining);
       if (!isPro && d.remaining <= 0) showPaywall();
     }
+    usageLoaded = true;
   })
-  .catch(() => {});
+  .catch(() => { updateUsagePill(0); usageLoaded = true; });
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closePaywall();

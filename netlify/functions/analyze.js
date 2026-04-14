@@ -29,7 +29,6 @@ exports.handler = async function(event) {
 
   let store;
   let currentCount = 0;
-  let blobsAvailable = true;
 
   try {
     store = getStore({ name: 'usage', consistency: 'strong' });
@@ -37,7 +36,14 @@ exports.handler = async function(event) {
     currentCount = (stored && stored.count) || 0;
   } catch (err) {
     console.error('Blobs read error:', err.message);
-    blobsAvailable = false;
+    // Deny by default: if we can't read usage, block free users
+    if (!isPro) {
+      return {
+        statusCode: 429,
+        headers: CORS_HEADERS,
+        body: JSON.stringify({ error: 'LIMIT_REACHED', remaining: 0 })
+      };
+    }
   }
 
   if (!isPro && currentCount >= DAILY_FREE_LIMIT) {
@@ -76,7 +82,7 @@ exports.handler = async function(event) {
       throw new Error('Failed to parse AI response. Please try again.');
     }
 
-    if (!isPro && blobsAvailable && store) {
+    if (!isPro && store) {
       try {
         await store.setJSON(getTodayKey(ip), { count: currentCount + 1 });
       } catch (err) {

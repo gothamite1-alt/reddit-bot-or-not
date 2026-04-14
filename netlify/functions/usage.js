@@ -42,10 +42,11 @@ exports.handler = async function(event) {
     };
   } catch (err) {
     console.error('Blobs error:', err.message);
+    // Deny by default: if we can't read usage, report 0 remaining
     return {
       statusCode: 200,
       headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ remaining: DAILY_FREE_LIMIT })
+      body: JSON.stringify({ remaining: 0 })
     };
   }
 };
