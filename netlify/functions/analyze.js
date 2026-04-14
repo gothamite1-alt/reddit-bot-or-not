@@ -1,6 +1,44 @@
+Content is user-generated and unverified.
+const { getStore } = require('@netlify/blobs');
+
+const DAILY_FREE_LIMIT = 3;
+
+function getTodayKey(ip) {
+  const today = new Date().toISOString().slice(0, 10);
+  return `usage_${ip}_${today}`;
+}
+
 exports.handler = async function(event) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
+  }
+
+  const ip = event.headers['x-forwarded-for']?.split(',')[0]?.trim()
+    || event.headers['client-ip']
+    || 'unknown';
+
+  const isPro = event.headers['x-pro-token'] === process.env.PRO_SECRET;
+
+  let currentCount = 0;
+
+  if (!isPro) {
+    try {
+      const store = getStore('usage');
+      const key = getTodayKey(ip);
+      const val = await store.get(key);
+      currentCount = val ? parseInt(val) : 0;
+
+      if (currentCount >= DAILY_FREE_LIMIT) {
+        return {
+          statusCode: 429,
+          headers: { 'Access-Control-Allow-Origin': '*' },
+          body: JSON.stringify({ error: 'LIMIT_REACHED', remaining: 0 })
+        };
+      }
+    } catch (e) {
+      console.error('Blob read error:', e.message);
+      // fail open — let them through if blob store errors
+    }
   }
 
   try {
@@ -22,14 +60,30 @@ exports.handler = async function(event) {
 
     const data = await response.json();
     if (data.error) throw new Error(data.error.message);
-    
+
     const raw = data.content.map(b => b.text || '').join('');
     const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
 
+    // Increment usage in blob store
+    if (!isPro) {
+      try {
+        const store = getStore('usage');
+        const key = getTodayKey(ip);
+        await store.set(key, String(currentCount + 1));
+      } catch (e) {
+        console.error('Blob write error:', e.message);
+      }
+    }
+
+    const remaining = isPro ? 999 : DAILY_FREE_LIMIT - (currentCount + 1);
+
     return {
       statusCode: 200,
-      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
-      body: JSON.stringify(parsed)
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ ...parsed, remaining })
     };
 
   } catch (err) {
