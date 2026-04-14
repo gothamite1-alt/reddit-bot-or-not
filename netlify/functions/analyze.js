@@ -1,5 +1,3 @@
-Access-Control-Allow-Origin': 'https://reddit-bot-or-not.com',
-'Access-Control-Allow-Credentials': 'true
 const DAILY_FREE_LIMIT = 3;
 const usageStore = new Map();
 
