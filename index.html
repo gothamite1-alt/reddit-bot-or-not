@@ -942,27 +942,6 @@ async function analyze() {
     return;
   }
 
-  const prompt = `You are an expert at detecting AI-generated text trained on Reddit posting styles. Analyze this Reddit post/comment.
-
-"""
-${text.slice(0, 2000)}
-"""
-
-Respond ONLY with valid JSON, no markdown, no preamble:
-{
-  "verdict": "AI" | "HUMAN" | "MIXED",
-  "confidence": <integer 0-100>,
-  "signals": [
-    { "type": "red" | "green" | "yellow", "text": "<specific signal, max 15 words>" }
-  ],
-  "summary": "<2-3 sentences explaining your reasoning>"
-}
-
-verdict: AI=likely AI-generated, HUMAN=likely human, MIXED=uncertain
-confidence: certainty in your verdict
-signals: 3-5 specific textual tells. red=AI indicator, green=human indicator, yellow=ambiguous
-Analyze: hedging language, generic transitions, over-structured prose, lack of typos/slang, emotional authenticity, specific personal details, Reddit voice, casual markers.`;
-
   try {
     const res = await fetch('/.netlify/functions/analyze', {
       method: 'POST',
@@ -1008,7 +987,8 @@ function renderResult(data) {
   const list = document.getElementById('signalList');
   list.innerHTML = (data.signals || []).map(s => {
     const icon = s.type === 'red' ? '✕' : s.type === 'green' ? '✓' : '~';
-    return `<div class="signal-item"><span class="sig-dot ${s.type}">${icon}</span><span>${s.text}</span></div>`;
+    const escaped = s.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return `<div class="signal-item"><span class="sig-dot ${s.type}">${icon}</span><span>${escaped}</span></div>`;
   }).join('');
 
   document.getElementById('summaryText').textContent = data.summary || '';
@@ -1054,6 +1034,10 @@ function goToStripe() {
 
 // ── INIT ──
 updateUsagePill(3);
+fetch('/.netlify/functions/usage')
+  .then(r => r.json())
+  .then(d => { if (d.remaining !== undefined) updateUsagePill(d.remaining); })
+  .catch(() => {});
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closePaywall();
