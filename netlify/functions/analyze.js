@@ -40,7 +40,7 @@ exports.handler = async function(event) {
     blobsAvailable = false;
   }
 
-  if (!isPro && blobsAvailable && currentCount >= DAILY_FREE_LIMIT) {
+  if (!isPro && currentCount >= DAILY_FREE_LIMIT) {
     return {
       statusCode: 429,
       headers: CORS_HEADERS,

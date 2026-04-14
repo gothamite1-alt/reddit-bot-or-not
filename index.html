@@ -877,13 +877,18 @@ const STRIPE_ANNUAL_URL  = 'https://buy.stripe.com/5kQcMYeew4oNbkX2jg5Vu02';
 // API key is now handled server-side via Netlify function
 
 // ── USAGE TRACKING (server-side IP based) ──
+let currentRemaining = DAILY_FREE_LIMIT;
+let isPro = false;
+
 function updateUsagePill(remaining) {
   const pill = document.getElementById('usagePill');
   if (remaining === undefined || remaining >= 999) {
     pill.textContent = 'Pro ✓';
     pill.classList.remove('low');
+    isPro = true;
     return;
   }
+  currentRemaining = remaining;
   pill.textContent = remaining + ' free left';
   pill.classList.toggle('low', remaining <= 1);
 }
@@ -930,6 +935,8 @@ function hashText(s) {
 async function analyze() {
   const text = document.getElementById('postInput').value.trim();
   if (text.length < 30) { showError('Please paste a longer post (at least 30 characters).'); return; }
+
+  if (!isPro && currentRemaining <= 0) { showPaywall(); return; }
 
   setLoading(true);
   hideError();
@@ -1033,10 +1040,15 @@ function goToStripe() {
 }
 
 // ── INIT ──
-updateUsagePill(1);
+updateUsagePill(DAILY_FREE_LIMIT);
 fetch('/.netlify/functions/usage')
   .then(r => r.json())
-  .then(d => { if (d.remaining !== undefined) updateUsagePill(d.remaining); })
+  .then(d => {
+    if (d.remaining !== undefined) {
+      updateUsagePill(d.remaining);
+      if (!isPro && d.remaining <= 0) showPaywall();
+    }
+  })
   .catch(() => {});
 
 document.addEventListener('keydown', e => {
