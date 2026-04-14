@@ -28,7 +28,8 @@ exports.handler = async function(event) {
       if (currentCount >= DAILY_FREE_LIMIT) {
         return {
           statusCode: 429,
-          headers: { 'Access-Control-Allow-Origin': '*' },
+          headers: { 'Access-Control-Allow-Origin': 'https://reddit-bot-or-not.com',
+'Access-Control-Allow-Credentials': 'true' },
           body: JSON.stringify({ error: 'LIMIT_REACHED', remaining: 0 })
         };
       }
