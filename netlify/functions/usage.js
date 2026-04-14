@@ -1,6 +1,6 @@
 const { getStore } = require('@netlify/blobs');
 
-const DAILY_FREE_LIMIT = 3;
+const DAILY_FREE_LIMIT = 1;
 
 function getTodayKey(ip) {
   const today = new Date().toISOString().slice(0, 10);

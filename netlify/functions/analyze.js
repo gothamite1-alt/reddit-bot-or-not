@@ -1,6 +1,6 @@
 const { getStore } = require('@netlify/blobs');
 
-const DAILY_FREE_LIMIT = 3;
+const DAILY_FREE_LIMIT = 1;
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, x-pro-token',

@@ -729,7 +729,7 @@ footer a:hover { color: var(--accent); }
   <div class="nav-inner">
     <a href="/" class="nav-logo">Bot<em>Or</em>Not</a>
     <div class="nav-right">
-      <span class="usage-pill" id="usagePill">3 free left</span>
+      <span class="usage-pill" id="usagePill">1 free left</span>
       <button class="upgrade-nav-btn" onclick="showPaywall()">Go Pro</button>
     </div>
   </div>
@@ -815,7 +815,7 @@ footer a:hover { color: var(--accent); }
 
     <div class="faq-item">
       <div class="faq-q">What's the difference between free and Pro?</div>
-      <div class="faq-a">Free gives you 3 analyses per day — enough to spot-check suspicious posts. Pro gives you unlimited analyses, bulk paste mode for checking multiple posts at once, and a detailed signal breakdown. Pro is designed for moderators, researchers, and power users.</div>
+      <div class="faq-a">Free gives you 1 analysis per day — enough to try the tool. Pro gives you unlimited analyses, bulk paste mode for checking multiple posts at once, and a detailed signal breakdown. Pro is designed for moderators, researchers, and power users.</div>
     </div>
 
     <div class="faq-item">
@@ -871,7 +871,7 @@ footer a:hover { color: var(--accent); }
 
 <script>
 // ── CONFIG ── Replace with your values before deploying
-const DAILY_FREE_LIMIT = 3;
+const DAILY_FREE_LIMIT = 1;
 const STRIPE_MONTHLY_URL = 'https://buy.stripe.com/3cI28k4DW4oNgFh0b85Vu00';
 const STRIPE_ANNUAL_URL  = 'https://buy.stripe.com/5kQcMYeew4oNbkX2jg5Vu02';
 // API key is now handled server-side via Netlify function
@@ -1033,7 +1033,7 @@ function goToStripe() {
 }
 
 // ── INIT ──
-updateUsagePill(3);
+updateUsagePill(1);
 fetch('/.netlify/functions/usage')
   .then(r => r.json())
   .then(d => { if (d.remaining !== undefined) updateUsagePill(d.remaining); })
