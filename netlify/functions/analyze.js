@@ -1,5 +1,3 @@
-const { getStore } = require('@netlify/blobs');
-
 const DAILY_FREE_LIMIT = 3;
 
 function getTodayKey(ip) {
