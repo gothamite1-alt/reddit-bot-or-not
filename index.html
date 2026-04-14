@@ -849,7 +849,7 @@ footer a:hover { color: var(--accent); }
       <div class="plan-card selected popular" onclick="selectPlan(this, 'monthly')">
         <div class="plan-top">
           <span class="plan-name">Pro Monthly</span>
-          <span class="plan-price">$5<span>/mo</span></span>
+          <span class="plan-price">$4<span>/mo</span></span>
         </div>
         <div class="plan-features">Unlimited analyses · Bulk paste mode · Detailed signal breakdown · Priority support</div>
       </div>
@@ -857,7 +857,7 @@ footer a:hover { color: var(--accent); }
       <div class="plan-card" onclick="selectPlan(this, 'yearly')">
         <div class="plan-top">
           <span class="plan-name">Pro Annual</span>
-          <span class="plan-price">$40<span>/yr</span></span>
+          <span class="plan-price">$29<span>/yr</span></span>
         </div>
         <div class="plan-features">Everything in Monthly · Save 40% · Cancel anytime</div>
       </div>
@@ -872,40 +872,20 @@ footer a:hover { color: var(--accent); }
 <script>
 // ── CONFIG ── Replace with your values before deploying
 const DAILY_FREE_LIMIT = 3;
-const STRIPE_MONTHLY_URL = 'https://buy.stripe.com/3cI28k4DW4oNgFh0b85Vu00';
-const STRIPE_ANNUAL_URL  = 'https://buy.stripe.com/5kQcMYeew4oNbkX2jg5Vu02';
+const STRIPE_MONTHLY_URL = 'https://buy.stripe.com/YOUR_MONTHLY_LINK';
+const STRIPE_ANNUAL_URL  = 'https://buy.stripe.com/YOUR_ANNUAL_LINK';
 // API key is now handled server-side via Netlify function
 
-// ── USAGE TRACKING ──
-function getUsage() {
-  const today = new Date().toDateString();
-  const stored = JSON.parse(localStorage.getItem('bon_usage') || '{}');
-  if (stored.date !== today) return { date: today, count: 0 };
-  return stored;
-}
-
-function incrementUsage() {
-  const u = getUsage();
-  u.count++;
-  localStorage.setItem('bon_usage', JSON.stringify(u));
-}
-
-function getRemainingFree() {
-  const isPro = localStorage.getItem('bon_pro') === 'true';
-  if (isPro) return Infinity;
-  return Math.max(0, DAILY_FREE_LIMIT - getUsage().count);
-}
-
-function updateUsagePill() {
-  const rem = getRemainingFree();
+// ── USAGE TRACKING (server-side IP based) ──
+function updateUsagePill(remaining) {
   const pill = document.getElementById('usagePill');
-  if (rem === Infinity) {
+  if (remaining === undefined || remaining >= 999) {
     pill.textContent = 'Pro ✓';
     pill.classList.remove('low');
     return;
   }
-  pill.textContent = rem + ' free left';
-  pill.classList.toggle('low', rem <= 1);
+  pill.textContent = remaining + ' free left';
+  pill.classList.toggle('low', remaining <= 1);
 }
 
 // ── EXAMPLES ──
@@ -951,8 +931,6 @@ async function analyze() {
   const text = document.getElementById('postInput').value.trim();
   if (text.length < 30) { showError('Please paste a longer post (at least 30 characters).'); return; }
 
-  if (getRemainingFree() <= 0) { showPaywall(); return; }
-
   setLoading(true);
   hideError();
   hideResult();
@@ -992,16 +970,17 @@ Analyze: hedging language, generic transitions, over-structured prose, lack of t
       body: JSON.stringify({ text })
     });
 
+    if (res.status === 429) { showPaywall(); setLoading(false); return; }
     if (!res.ok) throw new Error('API error ' + res.status);
 
     const parsed = await res.json();
 
     CACHE.set(key, parsed);
-    incrementUsage();
-    updateUsagePill();
+    if (parsed.remaining !== undefined) updateUsagePill(parsed.remaining);
     renderResult(parsed);
 
   } catch (err) {
+    if (err.message && err.message.includes('429')) { showPaywall(); return; }
     showError('Analysis failed — ' + (err.message || 'try again.'));
   } finally {
     setLoading(false);
@@ -1072,7 +1051,7 @@ function goToStripe() {
 }
 
 // ── INIT ──
-updateUsagePill();
+updateUsagePill(3);
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closePaywall();
